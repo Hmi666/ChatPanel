@@ -2,7 +2,7 @@
 
 Local Chat Panel is a pure frontend, local-first AI chat panel built with React, Vite, TypeScript, Ant Design, Ant Design X, Zustand, and Markdown rendering libraries.
 
-The app does not include a backend, proxy, database, login system, analytics SDK, or API route. Requests are sent directly from the browser to the OpenAI-compatible API Base URL configured by the user.
+The frontend app does not include a database, login system, analytics SDK, or API route. In strict static mode, requests are sent directly from the browser to the OpenAI-compatible API Base URL configured by the user. Docker deployment also includes an optional Nginx same-origin proxy for APIs that block browser CORS.
 
 ## Features
 
@@ -74,6 +74,40 @@ The container serves the static app with Nginx:
 - Container port: `6001`
 - URL: `http://localhost:10002`
 
+### Optional same-origin API proxy
+
+Docker deployment also exposes a same-origin proxy path:
+
+```text
+/api/openai/
+```
+
+By default, `docker-compose.yml` forwards that path to:
+
+```text
+https://ai.netclip.cloud
+```
+
+Use this Base URL in the app Settings drawer to avoid browser CORS failures:
+
+```text
+/api/openai
+```
+
+Then chat requests are sent by the browser to:
+
+```text
+/api/openai/chat/completions
+```
+
+Nginx forwards them to:
+
+```text
+https://ai.netclip.cloud/chat/completions
+```
+
+To change the upstream API, edit `AI_API_BASE_URL` in `docker-compose.yml`. Use a base URL without a trailing slash. For strict pure frontend mode, do not use this proxy; configure CORS on the API provider instead.
+
 Stop the service:
 
 ```bash
@@ -109,7 +143,7 @@ Pure frontend mode cannot bypass browser CORS restrictions.
 
 If the configured API does not allow browser cross-origin requests, the browser will block the call before the app can read the response. Use an API endpoint that supports browser CORS, or use a proxy service that you trust and operate separately.
 
-This project intentionally does not include a CORS proxy because that would turn it into a backend or API relay.
+For Docker deployment, this repository includes an optional Nginx same-origin proxy at `/api/openai/`. Use it only when you accept that the deployed Nginx container is relaying API traffic.
 
 ## Privacy
 

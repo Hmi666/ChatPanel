@@ -5,5 +5,8 @@ services:
       dockerfile: Dockerfile
     container_name: local-chat-panel
     restart: unless-stopped
+    environment:
+      AI_API_BASE_URL: "https://ai.netclip.cloud"
+      NGINX_ENVSUBST_FILTER: "^AI_API_BASE_URL$"
     ports:
       - "10002:6001"
