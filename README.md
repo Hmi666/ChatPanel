@@ -52,6 +52,16 @@ No server-side environment variable is required for API configuration. In pure f
 
 ## Docker Deployment
 
+This Docker setup does not run `npm install` or `npm run build` inside the Docker image. It serves the already-built `dist/` directory with Nginx, which is friendlier to low-spec machines.
+
+Before building the Docker image, make sure `dist/` exists and is committed:
+
+```bash
+npm install
+npm run build
+git add dist
+```
+
 Build and start with Docker Compose:
 
 ```bash
