@@ -28,7 +28,7 @@ export interface ProviderPreset {
 
 export const defaultSettings: ChatSettings = {
   provider: "openai",
-  baseURL: "https://api.openai.com/v1",
+  baseURL: "/api/openai",
   apiKey: "",
   model: "gpt-4o-mini",
   systemPrompt: "",
@@ -50,8 +50,8 @@ export const providerPresets: ProviderPreset[] = [
   {
     provider: "openai",
     label: "OpenAI Compatible",
-    defaultBaseURL: "https://api.openai.com/v1",
-    models: ["gpt-4o-mini", "gpt-4o", "gpt-4.1", "gpt-4.1-mini"],
+    defaultBaseURL: "/api/openai",
+    models: ["gpt-5", "gpt-4o-mini", "gpt-4o", "gpt-4.1", "gpt-4.1-mini"],
   },
   {
     provider: "deepseek",

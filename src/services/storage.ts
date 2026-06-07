@@ -59,6 +59,10 @@ export function getSettings(): ChatSettings {
     recentBaseURLs: Array.isArray(stored.recentBaseURLs) ? stored.recentBaseURLs : [],
   };
 
+  if (merged.baseURL.includes("ai.netclip.cloud")) {
+    merged.baseURL = "/api/openai";
+  }
+
   return merged;
 }
 

@@ -95,6 +95,8 @@ Use this Base URL in the app Settings drawer to avoid browser CORS failures:
 /api/openai
 ```
 
+If the browser Network tab still shows direct requests to `https://ai.netclip.cloud/...`, the page is still using an old saved Base URL. Open Settings and set API Base URL to `/api/openai`, or clear all local data and refresh.
+
 Then chat requests are sent by the browser to:
 
 ```text
