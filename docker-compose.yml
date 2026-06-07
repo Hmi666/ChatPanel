@@ -7,6 +7,6 @@ services:
     restart: unless-stopped
     environment:
       AI_API_BASE_URL: "https://ai.netclip.cloud"
-      NGINX_ENVSUBST_FILTER: "^AI_API_BASE_URL$"
+      PORT: "6001"
     ports:
       - "10002:6001"

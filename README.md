@@ -1,8 +1,8 @@
 # Local Chat Panel
 
-Local Chat Panel is a pure frontend, local-first AI chat panel built with React, Vite, TypeScript, Ant Design, Ant Design X, Zustand, and Markdown rendering libraries.
+Local Chat Panel is a local-first AI chat panel built with React, Vite, TypeScript, Ant Design, Ant Design X, Zustand, Markdown rendering libraries, and a narrow Node proxy server for Docker deployment.
 
-The frontend app does not include a database, login system, analytics SDK, or API route. In strict static mode, requests are sent directly from the browser to the OpenAI-compatible API Base URL configured by the user. Docker deployment also includes an optional Nginx same-origin proxy for APIs that block browser CORS.
+The app does not include a database, login system, analytics SDK, or cloud sync. In strict static mode, requests can be sent directly from the browser to the OpenAI-compatible API Base URL configured by the user. Docker deployment uses a Node same-origin proxy so browser CORS preflight failures do not block chat requests.
 
 ## Features
 
@@ -18,6 +18,7 @@ The frontend app does not include a database, login system, analytics SDK, or AP
 - API Key is not saved by default. It is written to `localStorage` only after enabling "Save API Key to localStorage".
 - Light and dark themes.
 - Responsive layout with desktop sidebar and mobile drawer.
+- Docker deployment with Node static hosting and same-origin API proxy.
 
 ## Local Run
 
@@ -52,7 +53,7 @@ No server-side environment variable is required for API configuration. In pure f
 
 ## Docker Deployment
 
-This Docker setup does not run `npm install` or `npm run build` inside the Docker image. It serves the already-built `dist/` directory with Nginx, which is friendlier to low-spec machines.
+This Docker setup does not run `npm run build` inside the Docker image. It serves the already-built `dist/` directory with a small Node server, which is friendlier to low-spec machines.
 
 Before building the Docker image, make sure `dist/` exists and is committed:
 
@@ -68,15 +69,15 @@ Build and start with Docker Compose:
 docker compose up -d
 ```
 
-The container serves the static app with Nginx:
+The container serves the app with Node:
 
 - Host port: `10002`
 - Container port: `6001`
 - URL: `http://localhost:10002`
 
-### Optional same-origin API proxy
+### Same-Origin API Proxy
 
-Docker deployment also exposes a same-origin proxy path:
+Docker deployment exposes a same-origin proxy path:
 
 ```text
 /api/openai/
@@ -100,13 +101,13 @@ Then chat requests are sent by the browser to:
 /api/openai/chat/completions
 ```
 
-Nginx forwards them to:
+Node forwards them to:
 
 ```text
 https://ai.netclip.cloud/chat/completions
 ```
 
-To change the upstream API, edit `AI_API_BASE_URL` in `docker-compose.yml`. Use a base URL without a trailing slash. For strict pure frontend mode, do not use this proxy; configure CORS on the API provider instead.
+To change the upstream API, edit `AI_API_BASE_URL` in `docker-compose.yml`. Use a base URL without a trailing slash.
 
 Stop the service:
 
@@ -143,7 +144,7 @@ Pure frontend mode cannot bypass browser CORS restrictions.
 
 If the configured API does not allow browser cross-origin requests, the browser will block the call before the app can read the response. Use an API endpoint that supports browser CORS, or use a proxy service that you trust and operate separately.
 
-For Docker deployment, this repository includes an optional Nginx same-origin proxy at `/api/openai/`. Use it only when you accept that the deployed Nginx container is relaying API traffic.
+Docker deployment includes a Node same-origin proxy at `/api/openai/`. Use `/api/openai` as the in-page API Base URL to avoid browser CORS failures. The deployed Node container relays API traffic to `AI_API_BASE_URL`.
 
 ## Privacy
 
@@ -158,9 +159,11 @@ API Key behavior:
 
 The app does not collect, upload, sync, or relay API keys or chat content.
 
-## Why No Backend Is Needed
+## Static Mode Without Backend
 
 For personal local-first use, the browser can directly call an OpenAI-compatible API if that API supports browser CORS. The app only needs static assets, local state, and browser storage.
+
+If the API does not support browser CORS, use the Docker Node proxy mode.
 
 ## When A Backend Is Required
 

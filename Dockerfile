@@ -1,8 +1,16 @@
-FROM nginx:1.27-alpine
+FROM node:22-alpine
 
-COPY nginx.conf.template /etc/nginx/templates/default.conf.template
-COPY dist /usr/share/nginx/html
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=6001
+
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+COPY server ./server
+COPY dist ./dist
 
 EXPOSE 6001
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["npm", "run", "server"]
