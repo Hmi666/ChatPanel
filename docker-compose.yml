@@ -1,0 +1,9 @@
+services:
+  local-chat-panel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: local-chat-panel
+    restart: unless-stopped
+    ports:
+      - "10002:6001"

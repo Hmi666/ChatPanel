@@ -50,6 +50,26 @@ npm run preview
 
 No server-side environment variable is required for API configuration. In pure frontend mode, API settings mainly come from the in-page Settings drawer.
 
+## Docker Deployment
+
+Build and start with Docker Compose:
+
+```bash
+docker compose up -d
+```
+
+The container serves the static app with Nginx:
+
+- Host port: `10002`
+- Container port: `6001`
+- URL: `http://localhost:10002`
+
+Stop the service:
+
+```bash
+docker compose down
+```
+
 ## API Base URL Rules
 
 Enter the OpenAI-compatible base URL, for example:
