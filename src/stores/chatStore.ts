@@ -1,6 +1,7 @@
 import { message as antMessage } from "antd";
 import { create } from "zustand";
 import { dedupeRecent } from "../config/modelRegistry";
+import i18n from "../i18n";
 import {
   createChatCompletion,
   createStreamingChatCompletion,
@@ -99,13 +100,13 @@ function buildMessagesForRequest(settings: ChatSettings, messages: ChatMessage[]
 
 function validateSettings(settings: ChatSettings) {
   if (!settings.baseURL.trim()) {
-    throw new UserFacingError("API Base URL 不能为空。");
+    throw new UserFacingError(i18n.t("errors.apiBaseUrlRequired"));
   }
   if (!settings.apiKey.trim()) {
-    throw new UserFacingError("API Key 不能为空。");
+    throw new UserFacingError(i18n.t("errors.apiKeyRequired"));
   }
   if (!settings.model.trim()) {
-    throw new UserFacingError("Model Name 不能为空。");
+    throw new UserFacingError(i18n.t("errors.modelRequired"));
   }
 }
 
@@ -282,7 +283,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       const finalizeAssistant = (assistant: ChatMessage): ChatMessage => ({
         ...assistant,
-        content: assistant.content || "API 返回空内容。",
+        content: assistant.content || i18n.t("errors.apiEmptyContent"),
         status: "done",
       });
 
@@ -345,7 +346,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const next = upsertConversation(get().conversations, activeConversationId, (conversation) =>
         updateAssistantMessage(conversation, (assistant) => ({
           ...assistant,
-          content: assistant.content || (wasAbort ? "已停止生成。" : ""),
+          content: assistant.content || (wasAbort ? i18n.t("errors.stopped") : ""),
           status: wasAbort ? "done" : "error",
           errorMessage: wasAbort ? undefined : message,
         })),
@@ -432,7 +433,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       return result;
     } catch (error) {
       const message =
-        `${getReadableError(error)} 可能原因：API 不支持 /models、CORS 限制、API Key 无效或 Base URL 错误。/models 失败不影响你继续尝试 chat completions。`;
+        `${getReadableError(error)} ${i18n.t("errors.modelsTestHint")}`;
       antMessage.error(message);
       return {
         ok: false,

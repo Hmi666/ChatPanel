@@ -1,5 +1,6 @@
 import { CopyOutlined } from "@ant-design/icons";
 import { Button, message } from "antd";
+import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
@@ -23,6 +24,8 @@ function getTextContent(node: unknown): string {
 }
 
 export default function MarkdownMessage({ content }: MarkdownMessageProps) {
+  const { t } = useTranslation();
+
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
@@ -45,10 +48,10 @@ export default function MarkdownMessage({ content }: MarkdownMessageProps) {
                 type="text"
                 icon={<CopyOutlined />}
                 className="copy-code-button"
-                aria-label="Copy code"
+                aria-label={t("markdown.copyCode")}
                 onClick={() => {
                   void navigator.clipboard.writeText(code);
-                  message.success("Code copied");
+                  message.success(t("common.codeCopied"));
                 }}
               />
               <code className={className} {...props}>

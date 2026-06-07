@@ -1,5 +1,6 @@
 import {
   ApiOutlined,
+  CloudDownloadOutlined,
   DeleteOutlined,
   ExperimentOutlined,
   SafetyCertificateOutlined,
@@ -22,7 +23,9 @@ import {
   Tag,
   Typography,
 } from "antd";
-import { useEffect, useState } from "react";
+import type { RefObject } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   getGroupedModelOptions,
   getProviderPreset,
@@ -34,9 +37,16 @@ import type { ChatSettings, ModelProvider } from "../types/chat";
 interface SettingsDrawerProps {
   open: boolean;
   onClose: () => void;
+  tourRefs?: {
+    baseURL?: RefObject<HTMLDivElement>;
+    apiKey?: RefObject<HTMLDivElement>;
+    model?: RefObject<HTMLDivElement>;
+    fetchModels?: RefObject<HTMLDivElement>;
+  };
 }
 
-export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
+export default function SettingsDrawer({ open, onClose, tourRefs }: SettingsDrawerProps) {
+  const { t } = useTranslation();
   const settings = useChatStore((state) => state.settings);
   const updateSettings = useChatStore((state) => state.updateSettings);
   const clearAllData = useChatStore((state) => state.clearAllData);
@@ -54,9 +64,43 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
     form.setFieldsValue({ ...settings, ...patch });
   };
 
+  const modelOptions = useMemo(() => {
+    const presetOptions = getGroupedModelOptions(settings.recentModels, t("common.recent")).map(
+      (group) => {
+        const provider = providerPresets.find((item) => item.label === group.label);
+        return {
+          ...group,
+          label: provider ? t(`providers.${provider.provider}`) : group.label,
+        };
+      },
+    );
+
+    if (!models.length) {
+      return presetOptions;
+    }
+
+    return [
+      {
+        label: t("settings.availableModels"),
+        options: models.map((model) => ({ value: model, label: model })),
+      },
+      ...presetOptions,
+    ];
+  }, [models, settings.recentModels, t]);
+
+  const fetchModels = async () => {
+    setTesting(true);
+    const result = await testConnection();
+    setTesting(false);
+    setModels(result.models);
+    if (result.models.length && !settings.model.trim()) {
+      applyPatch({ model: result.models[0] });
+    }
+  };
+
   return (
     <Drawer
-      title="Settings"
+      title={t("settings.title")}
       placement="right"
       width={520}
       open={open}
@@ -64,12 +108,12 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
       className="settings-drawer"
     >
       <Form form={form} layout="vertical" initialValues={settings}>
-        <Typography.Title level={5}>Base settings</Typography.Title>
-        <Form.Item label="Provider" name="provider">
+        <Typography.Title level={5}>{t("settings.baseSettings")}</Typography.Title>
+        <Form.Item label={t("settings.provider")} name="provider">
           <Select
             options={providerPresets.map((item) => ({
               value: item.provider,
-              label: item.label,
+              label: t(`providers.${item.provider}`),
             }))}
             onChange={(provider: ModelProvider) => {
               const preset = getProviderPreset(provider);
@@ -82,63 +126,104 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
           />
         </Form.Item>
 
-        <Form.Item label="API Base URL" name="baseURL" required>
-          <AutoComplete
-            options={settings.recentBaseURLs.map((value) => ({ value }))}
-            onChange={(value) => applyPatch({ baseURL: value })}
-          />
+        <Form.Item label={t("settings.apiBaseUrl")} required>
+          <div ref={tourRefs?.baseURL}>
+            <Form.Item name="baseURL" noStyle>
+              <AutoComplete
+                options={settings.recentBaseURLs.map((value) => ({ value }))}
+                placeholder={t("settings.apiBaseUrlPlaceholder")}
+                onChange={(value) => applyPatch({ baseURL: value })}
+              />
+            </Form.Item>
+          </div>
         </Form.Item>
 
-        <Form.Item label="API Key" name="apiKey" required>
-          <Input.Password
-            autoComplete="off"
-            placeholder="sk-..."
-            onChange={(event) => applyPatch({ apiKey: event.target.value })}
-          />
+        <Form.Item label={t("settings.apiKey")} required>
+          <div ref={tourRefs?.apiKey}>
+            <Form.Item name="apiKey" noStyle>
+              <Input.Password
+                autoComplete="off"
+                placeholder="sk-..."
+                onChange={(event) => applyPatch({ apiKey: event.target.value })}
+              />
+            </Form.Item>
+          </div>
         </Form.Item>
 
-        <Form.Item label="Model Name" name="model" required>
-          <AutoComplete
-            options={getGroupedModelOptions(settings.recentModels)}
-            filterOption={(input, option) => {
-              if (!option || !("value" in option)) {
-                return false;
-              }
-              return String(option.value).toLowerCase().includes(input.toLowerCase());
-            }}
-            onChange={(value) => applyPatch({ model: value })}
-          />
+        <Form.Item label={t("settings.modelName")} required>
+          <div className="model-name-control" ref={tourRefs?.model}>
+            <Form.Item name="model" noStyle>
+              <AutoComplete
+                className="model-name-input"
+                options={modelOptions}
+                filterOption={(input, option) => {
+                  if (!option || !("value" in option)) {
+                    return false;
+                  }
+                  return String(option.value).toLowerCase().includes(input.toLowerCase());
+                }}
+                onChange={(value) => applyPatch({ model: value })}
+              />
+            </Form.Item>
+            <div className="model-fetch-target" ref={tourRefs?.fetchModels}>
+              <Button
+                icon={<CloudDownloadOutlined />}
+                loading={testing}
+                onClick={() => void fetchModels()}
+              >
+                {t("settings.fetchModels")}
+              </Button>
+            </div>
+          </div>
         </Form.Item>
 
-        <Form.Item label="System Prompt" name="systemPrompt">
+        {models.length > 0 && (
+          <div className="models-result settings-models-result">
+            {models.slice(0, 20).map((model) => (
+              <Tag key={model}>{model}</Tag>
+            ))}
+          </div>
+        )}
+
+        <Form.Item label={t("settings.systemPrompt")} name="systemPrompt">
           <Input.TextArea
             rows={4}
-            placeholder="Optional system instruction"
+            placeholder={t("settings.systemPromptPlaceholder")}
             onChange={(event) => applyPatch({ systemPrompt: event.target.value })}
           />
         </Form.Item>
 
         <Space className="settings-row" align="center">
-          <span>Save API Key to localStorage</span>
+          <span>{t("settings.saveApiKey")}</span>
           <Switch
             checked={settings.saveApiKey}
             onChange={(checked) => applyPatch({ saveApiKey: checked })}
           />
         </Space>
 
-        <Form.Item label="Theme" name="theme" className="settings-theme-select">
+        <Form.Item label={t("settings.theme")} name="theme" className="settings-theme-select">
           <Select
             options={[
-              { value: "light", label: "light" },
-              { value: "dark", label: "dark" },
+              { value: "light", label: t("theme.light") },
+              { value: "dark", label: t("theme.dark") },
             ]}
             onChange={(theme) => applyPatch({ theme })}
           />
         </Form.Item>
 
+        <Form.Item label={t("settings.language")} name="language">
+          <Select
+            options={[
+              { value: "en", label: "English" },
+              { value: "zh-CN", label: "中文" },
+            ]}
+            onChange={(language) => applyPatch({ language })}
+          />
+        </Form.Item>
+
         <Divider />
-        <Typography.Title level={5}>Generation</Typography.Title>
-        <Form.Item label={`Temperature: ${settings.temperature ?? "off"}`}>
+        <Typography.Title level={5}>{t("settings.generation")}</Typography.Title>
+        <Form.Item label={`${t("settings.temperature")}: ${settings.temperature ?? t("common.off")}`}>
           <Slider
             min={0}
             max={2}
@@ -148,7 +233,7 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
           />
         </Form.Item>
 
-        <Form.Item label="Max Tokens" name="maxTokens">
+        <Form.Item label={t("settings.maxTokens")} name="maxTokens">
           <InputNumber
             min={1}
             max={200000}
@@ -158,32 +243,32 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
         </Form.Item>
 
         <Space className="settings-row" align="center">
-          <span>Stream response</span>
+          <span>{t("settings.streamResponse")}</span>
           <Switch checked={settings.stream} onChange={(stream) => applyPatch({ stream })} />
         </Space>
 
         <Divider />
-        <Typography.Title level={5}>Reasoning</Typography.Title>
-        <Form.Item label="Reasoning Mode" name="reasoningMode">
+        <Typography.Title level={5}>{t("settings.reasoning")}</Typography.Title>
+        <Form.Item label={t("settings.reasoningMode")} name="reasoningMode">
           <Select
             options={["off", "auto", "low", "medium", "high", "custom"].map((value) => ({
               value,
-              label: value,
+              label: t(`reasoningModes.${value}`),
             }))}
             onChange={(reasoningMode) => applyPatch({ reasoningMode })}
           />
         </Form.Item>
 
-        <Form.Item label="Reasoning Param Type" name="reasoningParamType">
+        <Form.Item label={t("settings.reasoningParamType")} name="reasoningParamType">
           <Select
             options={["none", "reasoning_effort", "enable_thinking", "model_only", "custom_json"].map(
-              (value) => ({ value, label: value }),
+              (value) => ({ value, label: t(`reasoningParams.${value}`) }),
             )}
             onChange={(reasoningParamType) => applyPatch({ reasoningParamType })}
           />
         </Form.Item>
 
-        <Form.Item label="Reasoning Budget Tokens" name="reasoningBudgetTokens">
+        <Form.Item label={t("settings.reasoningBudgetTokens")} name="reasoningBudgetTokens">
           <InputNumber
             min={1}
             max={200000}
@@ -193,14 +278,14 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
         </Form.Item>
 
         <Space className="settings-row" align="center">
-          <span>Show reasoning content</span>
+          <span>{t("settings.showReasoningContent")}</span>
           <Switch
             checked={settings.showReasoningContent}
             onChange={(showReasoningContent) => applyPatch({ showReasoningContent })}
           />
         </Space>
 
-        <Form.Item label="Custom Extra Body JSON" name="customExtraBodyJson">
+        <Form.Item label={t("settings.customExtraBodyJson")} name="customExtraBodyJson">
           <Input.TextArea
             rows={5}
             placeholder='{"top_p":0.9}'
@@ -209,52 +294,39 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
         </Form.Item>
 
         <Divider />
-        <Typography.Title level={5}>Actions</Typography.Title>
+        <Typography.Title level={5}>{t("settings.actions")}</Typography.Title>
         <Space wrap>
           <Button
             icon={<ExperimentOutlined />}
             loading={testing}
-            onClick={async () => {
-              setTesting(true);
-              const result = await testConnection();
-              setTesting(false);
-              setModels(result.models);
-            }}
+            onClick={() => void fetchModels()}
           >
-            Test connection
+            {t("settings.testConnection")}
           </Button>
           <Button
             danger
             icon={<DeleteOutlined />}
             onClick={() => {
               Modal.confirm({
-                title: "Clear all local data",
-                content: "This removes settings, conversations, and local chat history from this browser.",
-                okText: "Clear all",
+                title: t("settings.clearAllTitle"),
+                content: t("settings.clearAllContent"),
+                okText: t("common.clearAll"),
                 okButtonProps: { danger: true },
                 onOk: clearAllData,
               });
             }}
           >
-            Clear all local data
+            {t("settings.clearAllLocalData")}
           </Button>
         </Space>
-
-        {models.length > 0 && (
-          <div className="models-result">
-            {models.slice(0, 20).map((model) => (
-              <Tag key={model}>{model}</Tag>
-            ))}
-          </div>
-        )}
 
         <Alert
           className="privacy-notice"
           type="info"
           showIcon
           icon={<SafetyCertificateOutlined />}
-          message="Privacy notice"
-          description="API Key 仅保存在当前浏览器本地；纯前端模式无法完全防止本机浏览器环境泄露，请不要在公共电脑保存 Key。"
+          message={t("settings.privacyNotice")}
+          description={t("settings.privacyDescription")}
         />
 
         <Descriptions
@@ -264,28 +336,28 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
           items={[
             {
               key: "cors",
-              label: "CORS",
-              children: "纯前端模式无法绕过 API 服务的浏览器跨域限制。",
+              label: t("settings.corsLabel"),
+              children: t("settings.corsDescription"),
             },
             {
               key: "endpoint",
-              label: "Chat endpoint",
-              children: "${baseURL}/chat/completions",
+              label: t("settings.endpointLabel"),
+              children: t("settings.endpointDescription"),
             },
             {
               key: "models",
-              label: "/models",
-              children: "/models 测试失败不代表 chat completions 一定不可用。",
+              label: t("settings.modelsLabel"),
+              children: t("settings.modelsDescription"),
             },
           ]}
         />
 
         <Alert
-          type="warning"
+          type="info"
           showIcon
           icon={<ApiOutlined />}
-          message="No backend proxy"
-          description="This app sends requests directly from the browser to the Base URL you configure."
+          message={t("settings.proxyEnabled")}
+          description={t("settings.proxyDescription")}
         />
       </Form>
     </Drawer>

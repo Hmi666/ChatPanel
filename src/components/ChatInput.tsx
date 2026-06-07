@@ -2,6 +2,7 @@ import { ApiOutlined } from "@ant-design/icons";
 import { Sender } from "@ant-design/x";
 import { Alert, Button, Space } from "antd";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useChatStore } from "../stores/chatStore";
 
 interface ChatInputProps {
@@ -9,6 +10,7 @@ interface ChatInputProps {
 }
 
 export default function ChatInput({ onOpenSettings }: ChatInputProps) {
+  const { t } = useTranslation();
   const [value, setValue] = useState("");
   const settings = useChatStore((state) => state.settings);
   const isGenerating = useChatStore((state) => state.isGenerating);
@@ -24,10 +26,10 @@ export default function ChatInput({ onOpenSettings }: ChatInputProps) {
           className="config-alert"
           type="warning"
           showIcon
-          message="API Key is not configured"
+          message={t("chatInput.apiKeyMissing")}
           action={
             <Button size="small" icon={<ApiOutlined />} onClick={onOpenSettings}>
-              Settings
+              {t("common.settings")}
             </Button>
           }
         />
@@ -37,7 +39,7 @@ export default function ChatInput({ onOpenSettings }: ChatInputProps) {
           value={value}
           onChange={setValue}
           loading={isGenerating}
-          placeholder="Message the model"
+          placeholder={t("chatInput.placeholder")}
           submitType="enter"
           autoSize={{ minRows: 1, maxRows: 6 }}
           onSubmit={(message) => {
@@ -50,8 +52,8 @@ export default function ChatInput({ onOpenSettings }: ChatInputProps) {
           onCancel={stopGeneration}
           footer={() => (
             <Space className="sender-footer" size={8}>
-              <span>Enter to send</span>
-              <span>Shift + Enter for newline</span>
+              <span>{t("chatInput.enterToSend")}</span>
+              <span>{t("chatInput.shiftEnterNewline")}</span>
             </Space>
           )}
         />

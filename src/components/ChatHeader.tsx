@@ -4,9 +4,10 @@ import {
   MoonOutlined,
   SettingOutlined,
   SunOutlined,
+  TranslationOutlined,
 } from "@ant-design/icons";
 import { Button, Popconfirm, Space, Tag, Tooltip, Typography } from "antd";
-import { getProviderLabel } from "../config/modelRegistry";
+import { useTranslation } from "react-i18next";
 import { useChatStore } from "../stores/chatStore";
 
 interface ChatHeaderProps {
@@ -20,6 +21,7 @@ export default function ChatHeader({
   onOpenSidebar,
   showMenuButton,
 }: ChatHeaderProps) {
+  const { t } = useTranslation();
   const conversations = useChatStore((state) => state.conversations);
   const activeConversationId = useChatStore((state) => state.activeConversationId);
   const settings = useChatStore((state) => state.settings);
@@ -28,52 +30,76 @@ export default function ChatHeader({
 
   const active = conversations.find((conversation) => conversation.id === activeConversationId);
   const isDark = settings.theme === "dark";
+  const nextLanguage = settings.language === "en" ? "zh-CN" : "en";
+  const getTitle = (title?: string) => {
+    if (!title || title === "New chat") {
+      return t("common.newChat");
+    }
+    if (title === "Untitled chat") {
+      return t("common.untitledChat");
+    }
+    return title;
+  };
 
   return (
     <header className="chat-header">
       <div className="header-left">
         {showMenuButton && (
-          <Tooltip title="Open conversations">
+          <Tooltip title={t("header.openConversations")}>
             <Button
               icon={<MenuOutlined />}
-              aria-label="Open conversations"
+              aria-label={t("header.openConversations")}
               onClick={onOpenSidebar}
             />
           </Tooltip>
         )}
         <div className="header-title-group">
           <Typography.Title level={4} className="chat-title">
-            {active?.title ?? "New chat"}
+            {getTitle(active?.title)}
           </Typography.Title>
           <Space size={6} wrap>
-            <Tag bordered={false}>{getProviderLabel(settings.provider)}</Tag>
-            <Tag bordered={false}>{settings.model || "No model"}</Tag>
+            <Tag bordered={false}>{t(`providers.${settings.provider}`)}</Tag>
+            <Tag bordered={false}>{settings.model || t("common.noModel")}</Tag>
           </Space>
         </div>
       </div>
 
       <Space size={8}>
-        <Tooltip title={isDark ? "Switch to light theme" : "Switch to dark theme"}>
+        <Tooltip
+          title={t("language.switchTo", {
+            language: t(nextLanguage === "zh-CN" ? "language.zh" : "language.en"),
+          })}
+        >
+          <Button
+            className="language-toggle-button"
+            icon={<TranslationOutlined />}
+            aria-label={t("header.switchLanguage")}
+            onClick={() => updateSettings({ language: nextLanguage })}
+          >
+            {settings.language === "en" ? "中" : "EN"}
+          </Button>
+        </Tooltip>
+        <Tooltip title={isDark ? t("header.switchLight") : t("header.switchDark")}>
           <Button
             icon={isDark ? <SunOutlined /> : <MoonOutlined />}
-            aria-label="Toggle theme"
+            aria-label={t("header.toggleTheme")}
             onClick={() => updateSettings({ theme: isDark ? "light" : "dark" })}
           />
         </Tooltip>
         <Popconfirm
-          title="Clear current conversation?"
-          description="This removes local messages in the active conversation."
-          okText="Clear"
+          title={t("header.clearTitle")}
+          description={t("header.clearDescription")}
+          okText={t("common.clear")}
           okButtonProps={{ danger: true }}
           onConfirm={clearCurrentConversation}
         >
-          <Button icon={<ClearOutlined />} aria-label="Clear current conversation" />
+          <Button icon={<ClearOutlined />} aria-label={t("header.clearCurrent")} />
         </Popconfirm>
-        <Tooltip title="Settings">
+        <Tooltip title={t("common.settings")}>
           <Button
             type="primary"
             icon={<SettingOutlined />}
-            aria-label="Open settings"
+            aria-label={t("header.openSettings")}
             onClick={onOpenSettings}
           />
         </Tooltip>

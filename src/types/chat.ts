@@ -4,6 +4,8 @@ export type MessageStatus = "sending" | "streaming" | "done" | "error";
 
 export type ThemeMode = "light" | "dark";
 
+export type LanguageMode = "en" | "zh-CN";
+
 export type ModelProvider = "openai" | "deepseek" | "qwen" | "openrouter" | "custom";
 
 export type ReasoningMode = "off" | "auto" | "low" | "medium" | "high" | "custom";
@@ -44,6 +46,7 @@ export interface ChatSettings {
   stream: boolean;
   saveApiKey: boolean;
   theme: ThemeMode;
+  language: LanguageMode;
   reasoningMode: ReasoningMode;
   reasoningParamType: ReasoningParamType;
   reasoningBudgetTokens?: number;

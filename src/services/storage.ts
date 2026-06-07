@@ -7,6 +7,7 @@ const KEYS = {
   settings: "local-chat-panel:settings",
   conversations: "local-chat-panel:conversations",
   activeConversationId: "local-chat-panel:activeConversationId",
+  onboardingComplete: "local-chat-panel:onboardingComplete",
 };
 
 function getLocalStorage() {
@@ -55,12 +56,13 @@ export function getSettings(): ChatSettings {
     ...defaultSettings,
     ...stored,
     apiKey: stored.saveApiKey ? stored.apiKey ?? "" : "",
+    language: stored.language === "zh-CN" ? "zh-CN" : "en",
     recentModels: Array.isArray(stored.recentModels) ? stored.recentModels : [],
     recentBaseURLs: Array.isArray(stored.recentBaseURLs) ? stored.recentBaseURLs : [],
   };
 
-  if (merged.baseURL.includes("ai.netclip.cloud")) {
-    merged.baseURL = "/api/openai";
+  if (merged.model === "gpt-4o-mini") {
+    merged.model = defaultSettings.model;
   }
 
   return merged;
@@ -124,6 +126,35 @@ export function saveActiveConversationId(conversationId?: string) {
     } else {
       storage.removeItem(KEYS.activeConversationId);
     }
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+export function shouldShowOnboarding() {
+  ensureVersion();
+  const storage = getLocalStorage();
+  if (!storage) {
+    return false;
+  }
+  try {
+    if (storage.getItem(KEYS.onboardingComplete) === "true") {
+      return false;
+    }
+    return !storage.getItem(KEYS.settings) && !storage.getItem(KEYS.conversations);
+  } catch {
+    return false;
+  }
+}
+
+export function saveOnboardingComplete() {
+  ensureVersion();
+  const storage = getLocalStorage();
+  if (!storage) {
+    return;
+  }
+  try {
+    storage.setItem(KEYS.onboardingComplete, "true");
   } catch {
     // Ignore storage failures.
   }

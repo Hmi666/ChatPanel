@@ -9,6 +9,7 @@ import { Bubble } from "@ant-design/x";
 import { Alert, Button, Collapse, Space, Spin, Tooltip, message } from "antd";
 import type { BubbleDataType } from "@ant-design/x/es/bubble/BubbleList";
 import { useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useChatStore } from "../stores/chatStore";
 import type { ChatMessage } from "../types/chat";
 import EmptyGuide from "./EmptyGuide";
@@ -21,6 +22,8 @@ function MessageContent({
   item: ChatMessage;
   showReasoningContent: boolean;
 }) {
+  const { t } = useTranslation();
+
   if (item.role === "user") {
     return <div className="user-message-text">{item.content}</div>;
   }
@@ -34,7 +37,7 @@ function MessageContent({
           items={[
             {
               key: "reasoning",
-              label: "Reasoning",
+              label: t("messages.reasoning"),
               children: <pre className="reasoning-content">{item.reasoningContent}</pre>,
             },
           ]}
@@ -44,7 +47,7 @@ function MessageContent({
         <Alert
           type="error"
           showIcon
-          message="Request failed"
+          message={t("messages.requestFailed")}
           description={item.errorMessage}
           className="message-error"
         />
@@ -55,6 +58,7 @@ function MessageContent({
 }
 
 export default function ChatMessages() {
+  const { t } = useTranslation();
   const conversations = useChatStore((state) => state.conversations);
   const activeConversationId = useChatStore((state) => state.activeConversationId);
   const isGenerating = useChatStore((state) => state.isGenerating);
@@ -86,40 +90,40 @@ export default function ChatMessages() {
         ),
         footer: (
           <Space size={4} className="bubble-actions">
-            <Tooltip title="Copy message">
+            <Tooltip title={t("messages.copyMessage")}>
               <Button
                 size="small"
                 type="text"
                 icon={<CopyOutlined />}
-                aria-label="Copy message"
+                aria-label={t("messages.copyMessage")}
                 onClick={() => {
                   void navigator.clipboard.writeText(item.content);
-                  message.success("Copied");
+                  message.success(t("common.copied"));
                 }}
               />
             </Tooltip>
             {item.role === "assistant" && item === latestMessage && (
-              <Tooltip title="Regenerate">
+              <Tooltip title={t("messages.regenerate")}>
                 <Button
                   size="small"
                   type="text"
                   icon={<ReloadOutlined />}
-                  aria-label="Regenerate last assistant reply"
+                  aria-label={t("messages.regenerateAria")}
                   disabled={isGenerating}
                   onClick={() => void regenerateLastAssistant()}
                 />
               </Tooltip>
             )}
             {item.role === "user" && item.id === lastUser?.id && (
-              <Tooltip title="Edit and resend">
+              <Tooltip title={t("messages.editAndResend")}>
                 <Button
                   size="small"
                   type="text"
                   icon={<EditOutlined />}
-                  aria-label="Edit last user message"
+                  aria-label={t("messages.editLastUser")}
                   disabled={isGenerating}
                   onClick={() => {
-                    const next = window.prompt("Edit last user message", item.content);
+                    const next = window.prompt(t("messages.editPrompt"), item.content);
                     if (next?.trim()) {
                       void editLastUserAndResend(next);
                     }
@@ -138,6 +142,7 @@ export default function ChatMessages() {
       messages,
       regenerateLastAssistant,
       showReasoningContent,
+      t,
     ],
   );
 

@@ -1,4 +1,5 @@
 import { getModelPreset } from "../config/modelRegistry";
+import i18n from "../i18n";
 import type {
   ChatCompletionChunk,
   ChatCompletionResult,
@@ -36,12 +37,25 @@ interface OpenAIChatResponse {
 }
 
 interface ModelsResponse {
-  data?: Array<{ id?: string }>;
+  data?: Array<{ id?: string } | string>;
 }
 
 type OpenAIMessage = NonNullable<NonNullable<OpenAIChatResponse["choices"]>[number]["message"]>;
 
 export { normalizeBaseURL };
+
+function buildAuthHeaders(settings: ChatSettings, includeContentType = false) {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${settings.apiKey}`,
+    "X-API-Key": settings.apiKey,
+  };
+
+  if (includeContentType) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  return headers;
+}
 
 export function buildChatCompletionsURL(baseURL: string) {
   return joinEndpoint(baseURL, "chat/completions");
@@ -62,12 +76,14 @@ function parseCustomExtraBody(value: string): JsonRecord {
     parsed = JSON.parse(trimmed);
   } catch (error) {
     throw new UserFacingError(
-      `Custom Extra Body JSON 解析失败：${error instanceof Error ? error.message : "无效 JSON"}`,
+      i18n.t("errors.customJsonParseFailed", {
+        message: error instanceof Error ? error.message : i18n.t("errors.invalidJson"),
+      }),
     );
   }
 
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new UserFacingError("Custom Extra Body JSON 必须是一个 JSON 对象。");
+    throw new UserFacingError(i18n.t("errors.customJsonMustBeObject"));
   }
 
   return parsed as JsonRecord;
@@ -149,10 +165,7 @@ export async function createChatCompletion(
 ): Promise<ChatCompletionResult> {
   const response = await fetch(buildChatCompletionsURL(settings.baseURL), {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${settings.apiKey}`,
-      "Content-Type": "application/json",
-    },
+    headers: buildAuthHeaders(settings, true),
     body: JSON.stringify(buildRequestBody({ ...settings, stream: false }, messages)),
     signal,
   });
@@ -164,7 +177,7 @@ export async function createChatCompletion(
   const reasoningContent = extractReasoning(message);
 
   if (!content && !reasoningContent) {
-    throw new UserFacingError("API 返回空内容。");
+    throw new UserFacingError(i18n.t("errors.apiEmptyContent"));
   }
 
   return { content, reasoningContent };
@@ -175,7 +188,7 @@ export async function parseSSEStream(
   onChunk: (chunk: ChatCompletionChunk) => void,
 ) {
   if (!response.body) {
-    throw new UserFacingError("当前浏览器或 API 响应不支持 ReadableStream。");
+    throw new UserFacingError(i18n.t("errors.readableStreamUnsupported"));
   }
 
   const reader = response.body.getReader();
@@ -212,7 +225,9 @@ export async function parseSSEStream(
         });
       } catch (error) {
         throw new UserFacingError(
-          `流式响应解析失败：${error instanceof Error ? error.message : "无效 SSE 数据"}`,
+          i18n.t("errors.sseParseFailed", {
+            message: error instanceof Error ? error.message : i18n.t("errors.invalidSse"),
+          }),
         );
       }
     }
@@ -227,10 +242,7 @@ export async function createStreamingChatCompletion(
 ) {
   const response = await fetch(buildChatCompletionsURL(settings.baseURL), {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${settings.apiKey}`,
-      "Content-Type": "application/json",
-    },
+    headers: buildAuthHeaders(settings, true),
     body: JSON.stringify(buildRequestBody({ ...settings, stream: true }, messages)),
     signal,
   });
@@ -241,28 +253,29 @@ export async function createStreamingChatCompletion(
 
 export async function testModelsEndpoint(settings: ChatSettings): Promise<ModelTestResult> {
   if (!settings.baseURL.trim()) {
-    throw new UserFacingError("API Base URL 不能为空。");
+    throw new UserFacingError(i18n.t("errors.apiBaseUrlRequired"));
   }
   if (!settings.apiKey.trim()) {
-    throw new UserFacingError("API Key 不能为空。");
+    throw new UserFacingError(i18n.t("errors.apiKeyRequired"));
   }
 
   const response = await fetch(buildModelsURL(settings.baseURL), {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${settings.apiKey}`,
-    },
+    headers: buildAuthHeaders(settings),
   });
 
   await assertResponse(response);
   const json = (await response.json()) as ModelsResponse;
-  const models = json.data?.map((model) => model.id).filter((id): id is string => Boolean(id)) ?? [];
+  const models =
+    json.data
+      ?.map((model) => (typeof model === "string" ? model : model.id))
+      .filter((id): id is string => Boolean(id)) ?? [];
 
   return {
     ok: true,
     message: models.length
-      ? `连接成功，读取到 ${models.length} 个模型。`
-      : "连接成功，但 /models 未返回模型列表。",
+      ? i18n.t("errors.modelsFound", { count: models.length })
+      : i18n.t("errors.modelsEmpty"),
     models,
   };
 }

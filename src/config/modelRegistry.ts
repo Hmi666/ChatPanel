@@ -28,15 +28,16 @@ export interface ProviderPreset {
 
 export const defaultSettings: ChatSettings = {
   provider: "openai",
-  baseURL: "/api/openai",
+  baseURL: "https://ai.netclip.cloud",
   apiKey: "",
-  model: "gpt-4o-mini",
+  model: "gpt-5.4-mini",
   systemPrompt: "",
   temperature: 0.7,
   maxTokens: 2048,
   stream: true,
   saveApiKey: false,
   theme: "light",
+  language: "en",
   reasoningMode: "off",
   reasoningParamType: "none",
   reasoningBudgetTokens: undefined,
@@ -50,8 +51,8 @@ export const providerPresets: ProviderPreset[] = [
   {
     provider: "openai",
     label: "OpenAI Compatible",
-    defaultBaseURL: "/api/openai",
-    models: ["gpt-5", "gpt-4o-mini", "gpt-4o", "gpt-4.1", "gpt-4.1-mini"],
+    defaultBaseURL: "https://ai.netclip.cloud",
+    models: ["gpt-5.4-mini", "gpt-5.5", "gpt-5.4", "gpt-5.2-chat-latest", "gpt-5.2"],
   },
   {
     provider: "deepseek",
@@ -139,12 +140,12 @@ export function getProviderLabel(provider: ModelProvider) {
   return getProviderPreset(provider)?.label ?? "Custom";
 }
 
-export function getGroupedModelOptions(recentModels: string[] = []) {
+export function getGroupedModelOptions(recentModels: string[] = [], recentLabel = "Recent") {
   return [
     ...(recentModels.length
       ? [
           {
-            label: "Recent",
+            label: recentLabel,
             options: recentModels.map((model) => ({ value: model, label: model })),
           },
         ]

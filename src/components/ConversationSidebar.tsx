@@ -1,20 +1,29 @@
 import {
   DeleteOutlined,
   EditOutlined,
+  MenuFoldOutlined,
   MessageOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
 import { Conversations } from "@ant-design/x";
-import { Button, Input, Modal, Space, Typography } from "antd";
+import { Button, Input, Modal, Space, Tooltip, Typography } from "antd";
 import type { MenuProps } from "antd";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useChatStore } from "../stores/chatStore";
 
 interface ConversationSidebarProps {
   onCloseMobile?: () => void;
+  onHideDesktop?: () => void;
+  showHideButton?: boolean;
 }
 
-export default function ConversationSidebar({ onCloseMobile }: ConversationSidebarProps) {
+export default function ConversationSidebar({
+  onCloseMobile,
+  onHideDesktop,
+  showHideButton = false,
+}: ConversationSidebarProps) {
+  const { t } = useTranslation();
   const conversations = useChatStore((state) => state.conversations);
   const activeConversationId = useChatStore((state) => state.activeConversationId);
   const createConversation = useChatStore((state) => state.createConversation);
@@ -26,11 +35,16 @@ export default function ConversationSidebar({ onCloseMobile }: ConversationSideb
     () =>
       conversations.map((conversation) => ({
         key: conversation.id,
-        label: conversation.title,
+        label:
+          conversation.title === "New chat"
+            ? t("common.newChat")
+            : conversation.title === "Untitled chat"
+              ? t("common.untitledChat")
+              : conversation.title,
         timestamp: conversation.updatedAt,
         icon: <MessageOutlined />,
       })),
-    [conversations],
+    [conversations, t],
   );
 
   const menu = (conversation: { key: string }): MenuProps => ({
@@ -38,12 +52,12 @@ export default function ConversationSidebar({ onCloseMobile }: ConversationSideb
       {
         key: "rename",
         icon: <EditOutlined />,
-        label: "Rename",
+        label: t("sidebar.rename"),
       },
       {
         key: "delete",
         icon: <DeleteOutlined />,
-        label: "Delete",
+        label: t("common.delete"),
         danger: true,
       },
     ],
@@ -51,9 +65,9 @@ export default function ConversationSidebar({ onCloseMobile }: ConversationSideb
       domEvent.stopPropagation();
       if (key === "delete") {
         Modal.confirm({
-          title: "Delete conversation",
-          content: "This removes the conversation and its local messages from this browser.",
-          okText: "Delete",
+          title: t("sidebar.deleteTitle"),
+          content: t("sidebar.deleteDescription"),
+          okText: t("common.delete"),
           okButtonProps: { danger: true },
           onOk: () => deleteConversation(conversation.key),
         });
@@ -62,7 +76,7 @@ export default function ConversationSidebar({ onCloseMobile }: ConversationSideb
         const current = conversations.find((item) => item.id === conversation.key);
         let nextTitle = current?.title ?? "";
         Modal.confirm({
-          title: "Rename conversation",
+          title: t("sidebar.renameTitle"),
           content: (
             <Input
               defaultValue={nextTitle}
@@ -73,7 +87,7 @@ export default function ConversationSidebar({ onCloseMobile }: ConversationSideb
               }}
             />
           ),
-          okText: "Save",
+          okText: t("common.save"),
           onOk: () => renameConversation(conversation.key, nextTitle),
         });
       }
@@ -83,21 +97,32 @@ export default function ConversationSidebar({ onCloseMobile }: ConversationSideb
   return (
     <div className="conversation-sidebar">
       <div className="sidebar-header">
-        <Space direction="vertical" size={4}>
+        <Space className="sidebar-heading" direction="vertical" size={4}>
           <Typography.Title level={4} className="sidebar-title">
-            Local Chat Panel
+            {t("sidebar.title")}
           </Typography.Title>
-          <Typography.Text type="secondary">Stored in this browser</Typography.Text>
+          <Typography.Text type="secondary">{t("sidebar.subtitle")}</Typography.Text>
         </Space>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          aria-label="New chat"
-          onClick={() => {
-            createConversation();
-            onCloseMobile?.();
-          }}
-        />
+        <div className="sidebar-actions">
+          {showHideButton && (
+            <Tooltip title={t("sidebar.hide")}>
+              <Button
+                icon={<MenuFoldOutlined />}
+                aria-label={t("sidebar.hide")}
+                onClick={onHideDesktop}
+              />
+            </Tooltip>
+          )}
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            aria-label={t("sidebar.newChat")}
+            onClick={() => {
+              createConversation();
+              onCloseMobile?.();
+            }}
+          />
+        </div>
       </div>
 
       <Conversations

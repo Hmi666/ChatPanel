@@ -1,40 +1,42 @@
 import { ApiOutlined, CloudServerOutlined, KeyOutlined, RobotOutlined } from "@ant-design/icons";
 import { Button, Space, Typography } from "antd";
+import { useTranslation } from "react-i18next";
 import { useChatStore } from "../stores/chatStore";
 
 export default function EmptyGuide() {
+  const { t } = useTranslation();
   const createConversation = useChatStore((state) => state.createConversation);
 
   return (
     <div className="empty-guide">
       <div className="empty-guide-inner">
-        <Typography.Title level={2}>Start a local-first chat</Typography.Title>
+        <Typography.Title level={2}>{t("emptyGuide.title")}</Typography.Title>
         <Typography.Paragraph>
-          Configure an OpenAI-compatible endpoint in Settings, then chat directly from this browser.
+          {t("emptyGuide.description")}
         </Typography.Paragraph>
 
         <div className="guide-steps">
           <div className="guide-step">
             <CloudServerOutlined />
-            <span>Fill API Base URL</span>
+            <span>{t("emptyGuide.fillBaseUrl")}</span>
           </div>
           <div className="guide-step">
             <KeyOutlined />
-            <span>Enter API Key</span>
+            <span>{t("emptyGuide.enterApiKey")}</span>
           </div>
           <div className="guide-step">
             <RobotOutlined />
-            <span>Choose or type a model</span>
+            <span>{t("emptyGuide.chooseModel")}</span>
           </div>
           <div className="guide-step">
             <ApiOutlined />
-            <span>Browser CORS must be allowed by the API</span>
+            <span>{t("emptyGuide.corsRequired")}</span>
           </div>
         </div>
 
         <Space>
           <Button type="primary" onClick={createConversation}>
-            New chat
+            {t("common.newChat")}
           </Button>
         </Space>
       </div>
